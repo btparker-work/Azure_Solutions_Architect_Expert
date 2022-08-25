@@ -1,0 +1,74 @@
+git clone https://github.com/btparker-work/Azure_Solutions_Architect_Expert.git
+
+$rg = az group list --query [].name -o tsv
+
+az vm create `
+--resource-group $rg `
+--name notag-vm `
+--image UbuntuLTS `
+--admin-username cloudchase `
+--generate-ssh-keys `
+--no-wait
+
+az vm create `
+--resource-group $rg `
+--name tagged-vm `
+--image UbuntuLTS `
+--tags project=az104 `
+--admin-username cloudchase `
+--generate-ssh-keys `
+--no-wait
+
+az resource list --tag project=az104 --query [].name -o tsv
+az resource list --tag project=az104 --query [].id -o tsv
+
+foreach($r in az resource list --tag project=az104 --query [].id -o tsv) { `
+echo "Deleting $r" `
+az resource delete --ids $r `
+}
+
+foreach($r in az resource list --tag project=az104 --query [].id -o tsv) {
+echo "Deleting $r"
+az resource delete
+ --ids $r
+}
+
+az tag update --help
+
+az tag update `
+--resource-id (az vm show --resource-group $rg --name notag-vm --query id -o tsv) `
+--operation Replace `
+--tags project=az104
+
+az tag update `
+--resource-id (az group list --query [].id -o tsv) `
+--operation Merge `
+--tags Environment=Production Dept=IT CreatedBy=BrianParker
+
+az tag update `
+--resource-id (az group list --query [].id -o tsv) `
+--operation Delete `
+--tags Environment=Production Dept=IT CreatedBy=BrianParker
+
+az tag update `
+--resource-id (az group list --query [].id -o tsv) `
+--operation Merge `
+--tags MarkForDeletion=Yes
+
+az deployment group create `
+--resource-group (az group list --query [].name -o tsv) `
+--name CLIDEPLOY `
+--template-file linuxVM.json
+
+az group list
+az group update -n "395-4b6d39fd-add-remove-and-update-tags-for-resou" `
+--tags "Environment=Production" "Dept=IT" "CreatedBy=BrianParker"
+
+az vm list --query '[].{name:name, resourceGroup:resourceGroup, tags:tags}' -o json
+
+az vm update -g "395-4b6d39fd-add-remove-and-update-tags-for-resou" -n webvm1 `
+--remove tags.defaultExperience
+
+az vm update -g "395-4b6d39fd-add-remove-and-update-tags-for-resou" -n webvm1 --set tags.MarkForDeletion=Yes
+az network vnet list --query '[].{name:name, resourceGroup:resourceGroup, tags:tags}' -o json
+
